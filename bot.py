@@ -367,7 +367,7 @@ async def pause(ctx):
 # resumes music if paused
 @bot.command()
 async def resume(ctx):
-    queue = guild_dict[ctx.guild]
+    queue = guild_dict[ctx.guild].queue
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     # If nothing was playing then report to discord
     if not voice_client.is_playing() and await queue.is_empty() and not voice_client.is_paused():
