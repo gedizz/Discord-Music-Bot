@@ -57,9 +57,9 @@ async def download_using_url(url: str, append: bool, ctx):
 
 async def download_using_keywords(keywords, append: bool, ctx):
     request = YOUTUBE_URL_START
-    #explicit = guild_dict[ctx.guild]["explicit"]
-    #if explicit:  # adds explicit to the end of explicit searching is on
-        #keywords.append("explicit")
+    player = guild_dict[ctx.guild]
+    if player.explicit:  # adds explicit to the end of explicit searching is on
+        keywords.append("explicit")
     for key in keywords:
         request += key
         request += "+"
@@ -200,6 +200,18 @@ async def skip(ctx):
         await ctx.send("Song skipped")
     else:
         await ctx.send("No audio playing")
+
+
+# Toggles explicit searching through youtube keywords
+@bot.command(aliases=['expl', 'explicit', 'exp'])
+async def toggle_explicit(ctx):
+    player = guild_dict[ctx.guild]
+    if player.explicit:
+        player.explicit = False
+        await ctx.send("Explicit searching turned off")
+    else:
+        player.explicit = True
+        await ctx.send("Explicit searching turned on")
 
 
 @bot.command()
