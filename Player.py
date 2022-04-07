@@ -15,6 +15,7 @@ class Player:
         self.no_users_listening = 0
         self.max_vol = 1.0
         self.min_vol = 0.0
+        self.explicit = False
         # self.volume = self.voice.source.volume
 
     def play_audio(self, song_to_play, voice_client):
@@ -25,3 +26,7 @@ class Player:
         # play and set volume to default
         voice_client.play(audio_source, after=None)
         voice_client.source.volume = self.volume
+
+    def adjust_volume(self, new_volume, voice_client):
+        voice_client.source.volume = new_volume
+        self.volume = new_volume
