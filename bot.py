@@ -7,6 +7,7 @@ import urllib.request
 import requests
 import yt_dlp
 import re
+import threading as th
 
 # init player
 bot = commands.Bot(command_prefix='!', help_command=None)
@@ -31,7 +32,7 @@ YDL_OPTS = {'format': 'bestaudio/best',
 ###  Utility Functions  ###
 ###########################
 async def download_using_url(url: str, append: bool, ctx):
-    queue = guild_dict[ctx.guild]["queue"]
+    queue = guild_dict[ctx.guild].queue
     with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
         # extract video title from video referenced by url
         info_dict = ydl.extract_info(url, download=False)  # print this out sometime. It has a lot of interesting stuff
@@ -48,16 +49,16 @@ async def download_using_url(url: str, append: bool, ctx):
             else rename_and_download(raw_file_name, file_without_id, url, ydl)
 
         # Check if appending to front or back of queue, then perform appropriate action.
-        await queue.append(final_name) if append else await queue.add(final_name)
+        await queue.add(final_name, append)
         # await queue.print_list()
         return final_name  # return the file name to play() or to download_using_keywords()
 
 
 async def download_using_keywords(keywords, append: bool, ctx):
     request = YOUTUBE_URL_START
-    explicit = guild_dict[ctx.guild]["explicit"]
-    if explicit:  # adds explicit to the end of explicit searching is on
-        keywords.append("explicit")
+    #explicit = guild_dict[ctx.guild]["explicit"]
+    #if explicit:  # adds explicit to the end of explicit searching is on
+        #keywords.append("explicit")
     for key in keywords:
         request += key
         request += "+"
@@ -76,9 +77,34 @@ def rename_and_download(raw_file_name, file_without_id, url, ydl):
     return file_without_id
 
 
+async def queue_check(guild):
+    voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=guild)
+    player = guild_dict[guild]
+    queue = player.queue
+    print(f"queue checked for: {guild}")
+    if voice_client:
+        if not await queue.is_empty() and not voice_client.is_playing() and not voice_client.is_paused():
+            print(await queue.q_to_list())
+            song_to_play = queue.remove_from_queue(0)
+            player.play_audio(song_to_play, voice_client, guild)
+
+            #global idle_time
+            #idle_time = 0  # set global idle time to 1 so bot doesn't disconnect from leave_after_5 loop
+            player.now_playing = song_to_play
+        elif await queue.is_empty():
+            print("From 'check_queue': Queue empty")
+        else:
+            print("From 'check_queue': Song playing")
+
+
 ####################
 ###  Task Loops  ###
 ####################
+@tasks.loop(seconds=3.0)
+async def check_queue():
+    for guild in bot.guilds: # Need to change this to a thread for each guild. Works for now though
+        thread = th.Thread(target=queue_check, args=guild)
+        thread.start()
 
 
 ##############
@@ -107,9 +133,26 @@ async def on_message(message):
 ##  Commands  ##
 ################
 @bot.command()
-async def play(ctx):
+async def play(ctx, *args: str):
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    guild_dict[ctx.guild].play_audio("hotel.mp3", voice_client)
+    if ctx.author.voice is None:
+        await ctx.send("You must be connected to a voice channel to run this command")
+    else:
+        if not voice_client:
+            await join(ctx)
+
+    keys = list(args)
+    song_name = ""
+
+    # download if given a url
+    if keys[0].startswith("http://youtube") or keys[0].startswith("https://youtube"):
+        song_name = await download_using_url(keys[0], False, ctx)
+
+    else:  # use keys as search terms when building url
+        song_name = await download_using_keywords(keys, False, ctx)
+
+    song_name = song_name.replace(".mp3", "")
+    await ctx.send(f"{song_name} was added to the queue")
 
 
 @bot.command()
@@ -122,6 +165,18 @@ async def join(ctx):
 async def leave(ctx):
     await ctx.voice_client.disconnect()
 
+
+@bot.command()
+async def q(ctx):
+    queue = guild_dict[ctx.guild].queue
+    await queue.display_queue(ctx)
+
+
+@bot.command()
+async def remove(ctx, idx: int):
+    queue = guild_dict[ctx.guild].queue
+    song = await queue.remove_from_queue(idx)
+    await ctx.send(f"{song} removed from the queue") if song else await ctx.send("There is no song in the queue for that number")
 
 # Run bot
 bot.run(creds.api_key)
