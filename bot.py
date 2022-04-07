@@ -148,6 +148,7 @@ async def on_ready():
         print(f"Bot is ready on: {guild}")
     time.sleep(2)
     guild_tasks.start()
+    await bot.change_presence(activity=discord.Game(name="music | !help"))
 
         #pool = ThreadPool()
         #pool.map(await check_queue.start(guild))
