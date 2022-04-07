@@ -1,14 +1,13 @@
-import discord
-from discord.ext import commands, tasks
-import creds
-from Player import Player
 import os
-import urllib.request
-import yt_dlp
 import re
 import threading as th
 import time
-
+import urllib.request
+import discord
+import yt_dlp
+from discord.ext import commands, tasks
+import creds
+from Player import Player
 
 # init player
 bot = commands.Bot(command_prefix='!', help_command=None)
@@ -80,7 +79,7 @@ def rename_and_download(raw_file_name, file_without_id, url, ydl):
 
 async def listening_check(guild):
     player = guild_dict[guild]
-    queue = player.queue_list
+    queue = player.queue.queue_list
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=guild)
     if voice_client:
         # gets channel bot is connected to and all members in that channel
@@ -193,7 +192,47 @@ async def play(ctx, *args: str):
 
 
 @bot.command()
+async def append(ctx, *args: str):
+    voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    if ctx.author.voice is None:
+        await ctx.send("You must be connected to a voice channel to run this command")
+    else:
+        if not voice_client:
+            await join(ctx)
+
+        keys = list(args)
+        song_name = ""
+
+        # download if given a url
+        if keys[0].startswith("http://youtube") or keys[0].startswith("https://youtube"):
+            song_name = await download_using_url(keys[0], True, ctx)
+
+        else:  # use keys as search terms when building url
+            song_name = await download_using_keywords(keys, True, ctx)
+
+        song_name = song_name.replace(".mp3", "")
+        await ctx.send(f"{song_name} was added to the queue")
+
+
+# Will stream audio given a youtube link - (brief="keyword to set help desc?")
+@bot.command()
+async def stream(ctx, url: str):
+    player = guild_dict[ctx.guild]
+    try:
+        voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+        if ctx.author.voice is None:
+            await ctx.send("You must be connected to a voice channel to run this command")
+        else:
+            if not voice_client:
+                await join(ctx)
+        await player.stream_audio(voice_client, url, YDL_OPTS, ctx)
+    except:
+        await ctx.send("That song cannot be streamed, maybe try again")
+
+
+@bot.command()
 async def skip(ctx):
+    player = guild_dict[ctx.guild]
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice_client.is_playing():
         voice_client.stop()
@@ -233,17 +272,17 @@ async def np(ctx):
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     queue = guild_dict[ctx.guild].queue.queue_list
     now_playing = guild_dict[ctx.guild].now_playing.replace(".mp3", "")
-    if voice_client and len(queue) >= 2:
+    if voice_client.is_playing() and len(queue) >= 2:
         up_next = queue[0].replace(".mp3", "")
         in_hole = queue[1].replace(".mp3", "")
         await ctx.send(f"Now playing: {now_playing}\n\n"
                        f"Up next: {up_next}\n\n"
                        f"In the hole: {in_hole}")
-    elif voice_client and len(queue) >= 1:
+    elif voice_client.is_playing() and len(queue) >= 1:
         up_next = queue[0].replace(".mp3", "")
         await ctx.send(f"Now playing: {now_playing}\n\n"
                        f"Up next: {up_next}")
-    elif voice_client:
+    elif voice_client.is_playing():
         await ctx.send(f"Now playing: {now_playing}")
     else:
         await ctx.send("Nothing is currently playing")
@@ -375,6 +414,13 @@ async def help(ctx):
                    "!np - Lists song currently playing\n"
                    "!explicit - toggles explicit searching with youtube keywords")
 
+
+# clears all files in directory
+@bot.command(aliases=["clr", "cls"])
+async def clear(ctx):
+    for file in os.listdir("./"):
+        if file.endswith(".mp3"):
+            os.remove(file)
 
 # Run bot
 bot.run(creds.api_key)
