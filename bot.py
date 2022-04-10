@@ -131,8 +131,10 @@ async def queue_check(guild):
 @tasks.loop(seconds=3.0)
 async def guild_tasks():
     for guild in bot.guilds:
-        th.Thread(target=await queue_check(guild)).start()
-        th.Thread(target=await listening_check(guild)).start()
+        que_ck = th.Thread(target=await queue_check(guild))
+        que_ck.start()
+        listen_check = th.Thread(target=await listening_check(guild))
+        listen_check.start()
 
 
 ##############
