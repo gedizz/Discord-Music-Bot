@@ -79,7 +79,7 @@ def rename_and_download(raw_file_name, file_without_id, url, ydl):
 
 async def listening_check(guild):
     player = guild_dict[guild]
-    queue = player.queue.queue_list
+    queue = player.queue
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=guild)
     if voice_client:
         # gets channel bot is connected to and all members in that channel
