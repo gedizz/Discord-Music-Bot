@@ -25,11 +25,17 @@ class SongQueue:
 
     async def display_queue(self, ctx):
         song_num = 1
+        formatted_list = []
+        # Instead of awaiting every time we send a message and causing it to take longer, just format the list first
         if self.queue_list:
             for song in self.queue_list:
                 song = song.replace(".mp3", "")
-                await ctx.send(f"{song_num}) - {song}")
+                formatted_song = f"{song_num}) - {song}"
+                formatted_list.append(formatted_song)
                 song_num += 1
+            # Then send one message to the chat with a formatted list.
+            await ctx.send("\n\n" .join(formatted_list))
+
         else:
             await ctx.send("Queue is empty")
 
