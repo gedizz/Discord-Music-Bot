@@ -49,6 +49,7 @@ async def download_using_url(url: str, append: bool, ctx):
             else rename_and_download(raw_file_name, file_without_id, url, ydl)
 
         # Check if appending to front or back of queue, then perform appropriate action.
+        # print("URL AFTER DL: %s\n\n\n", url)
         await queue.add(final_name, append)
         # await queue.print_list()
         return final_name  # return the file name to play() or to download_using_keywords()
@@ -180,10 +181,12 @@ async def play(ctx, *args: str):
 
         keys = list(args)
         song_name = ""
+        #print("URL BEFORE DL: %s\n\n\n", keys[0])
 
         # download if given a url
-        if keys[0].startswith("http://youtube") or keys[0].startswith("https://youtube"):
+        if keys[0].startswith("http://www.youtube") or keys[0].startswith("https://www.youtube"):
             song_name = await download_using_url(keys[0], False, ctx)
+
 
         else:  # use keys as search terms when building url
             song_name = await download_using_keywords(keys, False, ctx)
@@ -205,7 +208,7 @@ async def append(ctx, *args: str):
         song_name = ""
 
         # download if given a url
-        if keys[0].startswith("http://youtube") or keys[0].startswith("https://youtube"):
+        if keys[0].startswith("http://www.youtube") or keys[0].startswith("https://www.youtube"):
             song_name = await download_using_url(keys[0], True, ctx)
 
         else:  # use keys as search terms when building url
