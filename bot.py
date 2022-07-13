@@ -528,6 +528,35 @@ async def team(ctx):
     await rust_socket.disconnect()
 
 @bot.command()
+async def server(ctx):
+    await rust_socket.connect()
+
+    server_info = await rust_socket.get_info()
+
+    embed = discord.Embed(title="Server Information", url="",
+                          description="",
+                          color=0xce412b)
+    embed.add_field(name="Name", value=server_info.name,
+                    inline=False)
+    embed.add_field(name="Pop", value=f"{server_info.players}/{server_info.max_players}",
+                    inline=False)
+    embed.add_field(name="Current Queue", value=f"{server_info.queued_players} players",
+                    inline=False)
+
+
+    url: str
+    name: str
+    map: str
+    size: int
+    players: int
+    max_players: int
+    queued_players: int
+    seed: int
+
+    await ctx.send(embed=embed)
+    await rust_socket.disconnect()
+
+@bot.command()
 async def map(ctx):
     await rust_socket.connect()
     map = await rust_socket.get_map(add_icons=True, add_events=True, add_vending_machines=True)
