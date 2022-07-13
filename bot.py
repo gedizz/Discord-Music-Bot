@@ -8,6 +8,9 @@ import yt_dlp
 from discord.ext import commands, tasks
 import creds
 from Player import Player
+from rustplus import RustSocket, FCMListener, CommandOptions, Command
+import asyncio
+import json
 
 # init player
 bot = commands.Bot(command_prefix='!', help_command=None)
@@ -401,7 +404,8 @@ async def remove(ctx, idx: int):
 async def help(ctx):
     await ctx.send("Command provided by this bot are specified below:\n\n"
 
-                    "!join - tells the bot to join your current voice channel\n"
+                   "!rust - Command list for rust help\n"
+                   "!join - tells the bot to join your current voice channel\n"
                    "!leave - tells the bot to leave your current voice channel\n"
                    "!play [argument] - adds a song to the queue to play\n"
                    "    - [argument] can be...\n"
@@ -416,8 +420,123 @@ async def help(ctx):
                    "!stream - stream from youtube LIVE URL - not always functional\n"
                    "!append - adds a song to the front of the list\n"
                    "!np - Lists song currently playing\n"
-                   "!explicit - toggles explicit searching with youtube keywords")
+                   "!explicit - toggles explicit searching with youtube keywords\n"
+                   "!clear - Clears all downloaded songs\n"
+                   "!remove [num in queue] - Removes a song from the current queue")
 
+# RUST PLUS
+# us-2x.stomptown.gg:28015
+
+with open("rustplus.py.config.json", "r") as input_file:
+    fcm_details = json.load(input_file)
+
+
+class FCM(FCMListener):
+
+    def on_notification(self, obj, notification, data_message):
+        print(notification)
+
+
+FCM(fcm_details).start()
+
+STEAMID = 76561198040853461
+PLAYERTOKEN = -432760157
+
+options = CommandOptions(prefix="!") # Use whatever prefix you want here
+rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
+
+async def main():
+    socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
+    await socket.connect()
+
+    print(f"It is {(await socket.get_time()).time}")
+    await socket.send_team_message(f"It is {(await socket.get_time()).time}")
+
+
+    await socket.disconnect()
+
+asyncio.run(main())
+
+# @socket.command
+# async def hi(command : Command):
+#     await rust_socket.send_team_message(f"Hi, {command.sender_name}")
+
+
+# {
+#     "desc": "Welcome to Lifestomper's official StompTown 2x server.\\n\\nJoin his official Discord... discord.gg/DkFqZa35pU\\n\\n- Improved weather cycles\\n- Boosted recycle speeds\\n- No junk barrels\\n- Minicopters & Boats naturally spawn\\n- No sun glare",
+#     "entityId": "42068738",
+#     "entityName": "Switch",
+#     "entityType": "1",
+#     "id": "27921208-8ce4-467a-a240-2ddd912f48b1",
+#     "img": "https://static.vitalrust.com/stomptown/logos/banner-768.jpg",
+#     "ip": "154.16.128.35",
+#     "logo": "https://static.vitalrust.com/stomptown/logos/lettermark_trans-256.png",
+#     "name": "[US] StompTown 2x",
+#     "playerId": "76561198040853461",
+#     "playerToken": "-432760157",
+#     "port": "28017",
+#     "type": "entity",
+#     "url": "https://discord.gg/JBnxrTNxRa"
+# }
+
+# {
+#     "desc": "Welcome to Lifestomper's official StompTown 2x server.\\n\\nJoin his official Discord... discord.gg/DkFqZa35pU\\n\\n- Improved weather cycles\\n- Boosted recycle speeds\\n- No junk barrels\\n- Minicopters & Boats naturally spawn\\n- No sun glare",
+#     "id": "27921208-8ce4-467a-a240-2ddd912f48b1",
+#     "img": "https://static.vitalrust.com/stomptown/logos/banner-768.jpg",
+#     "ip": "154.16.128.35",
+#     "logo": "https://static.vitalrust.com/stomptown/logos/lettermark_trans-256.png",
+#     "name": "[US] StompTown 2x",
+#     "port": "28017",
+#     "targetId": "76561199163869687",
+#     "targetName": "Loud_Sniper69",
+#     "type": "login",
+#     "url": "https://discord.gg/JBnxrTNxRa"
+# }
+
+
+
+# lists commands for rust help
+@bot.command()
+async def rust(ctx):
+    embed = discord.Embed(title="Dragon Bot Rust Commands", url="",
+                          description="This is a collection of useful Rust commands for Dragon Bot",
+                          color=0xce412b)
+    embed.set_thumbnail(url="https://www.logolynx.com/images/logolynx/00/00ffc7e57ffb143ce0dd3343aa5a59a7.png")
+
+    # Actual commands belong below
+    embed.add_field(name="!rads", value="Lists the rads for each monument",
+                    inline=False)
+    embed.add_field(name="!upgrade", value="Lists upgrade cost for each square, triangle, etc",
+                    inline=False)
+    embed.add_field(name="!raid [arg]", value="Lists raid cost for walls or deployables",
+                    inline=False)
+    embed.add_field(name="!time", value="Returns current ingame time",
+                    inline=False)
+    embed.add_field(name="!entities", value="Lists paired entities and their ID's",
+                    inline=False)
+    embed.add_field(name="!toggle [id]", value="Toggles the entity on or off. Returns new value",
+                    inline=False)
+    embed.add_field(name="!map", value="Returns map information",
+                    inline=False)
+    embed.add_field(name="!send [msg]", value="Sends a message to teamchat if you have a bound rust+ account",
+                    inline=False)
+    embed.add_field(name="!events", value="Returns status of oil/cargo etc",
+                    inline=False)
+    embed.add_field(name="!promote [name]", value="Promotes the player to teamleader",
+                    inline=False)
+    embed.add_field(name="!bind [STEAM64ID] [PLAYERTOKEN]", value="Binds your Rust+ to your discord user",
+                    inline=False)
+    await ctx.send(embed=embed)
+    # await ctx.send("Rust Commands:\n"
+    #                "\n"
+    #                "\n"
+    #                "\n"
+    #                "\n"
+    #                "\n"
+    #                "\n"
+    #                "\n"
+    #                "\n"
+    #                "\n")
 
 # clears all files in directory
 @bot.command(aliases=["clr", "cls"])
