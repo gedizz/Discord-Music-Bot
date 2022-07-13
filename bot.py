@@ -10,7 +10,9 @@ import creds
 from Player import Player
 from rustplus import RustSocket, FCMListener, CommandOptions, Command
 import asyncio
+from PIL import Image
 import json
+from datetime import datetime
 
 # init player
 bot = commands.Bot(command_prefix='!', help_command=None)
@@ -427,39 +429,6 @@ async def help(ctx):
 # RUST PLUS
 # us-2x.stomptown.gg:28015
 
-with open("rustplus.py.config.json", "r") as input_file:
-    fcm_details = json.load(input_file)
-
-
-class FCM(FCMListener):
-
-    def on_notification(self, obj, notification, data_message):
-        print(notification)
-
-
-FCM(fcm_details).start()
-
-STEAMID = 76561198040853461
-PLAYERTOKEN = -432760157
-
-options = CommandOptions(prefix="!") # Use whatever prefix you want here
-rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
-
-async def main():
-    socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
-    await socket.connect()
-
-    print(f"It is {(await socket.get_time()).time}")
-    await socket.send_team_message(f"It is {(await socket.get_time()).time}")
-
-
-    await socket.disconnect()
-
-asyncio.run(main())
-
-# @socket.command
-# async def hi(command : Command):
-#     await rust_socket.send_team_message(f"Hi, {command.sender_name}")
 
 
 # {
@@ -494,6 +463,82 @@ asyncio.run(main())
 # }
 
 
+# with open("rustplus.py.config.json", "r") as input_file:
+#     fcm_details = json.load(input_file)
+#
+#
+# class FCM(FCMListener):
+#
+#     def on_notification(self, obj, notification, data_message):
+#         print(notification)
+#
+#
+# FCM(fcm_details).start()
+
+
+
+STEAMID = 76561198040853461 # my steam id -- never changes
+PLAYERTOKEN = -432760157    # my player token. Might change
+
+#options = CommandOptions(prefix="!") # Use whatever prefix you want here
+rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
+
+async def main():
+    await rust_socket.connect()
+    print(f"Rust+ Monitor Online")
+    await rust_socket.disconnect()
+
+
+asyncio.run(main())
+
+
+@bot.command()
+async def curtime(ctx):
+    await rust_socket.connect()
+    await ctx.send(f"Current in-game time: {(await rust_socket.get_time()).time}")
+    await rust_socket.disconnect()
+
+@bot.command()
+async def team(ctx):
+    await rust_socket.connect()
+    team_info = await rust_socket.get_team_info()
+    for member in team_info.members:
+        embed = embed = discord.Embed(title=member.name, url="",
+                              description="",
+                              color=0xce412b)
+        embed.add_field(name="x_pos", value=f"{member.x}",
+                        inline=False)
+        embed.add_field(name="y_pos", value=f"{member.y}",
+                        inline=False)
+        embed.add_field(name="Is Online", value=f"{member.is_online}",
+                        inline=False)
+        embed.add_field(name="Is Alive", value=f"{member.is_alive}",
+                        inline=False)
+        await ctx.send(embed=embed)
+
+        # steam_id: int
+        # name: str
+        # x: float
+        # y: float
+        # is_online: bool
+        # spawn_time: int
+        # is_alive: bool
+        # death_time: int
+
+    await rust_socket.disconnect()
+
+@bot.command()
+async def map(ctx):
+    await rust_socket.connect()
+    map = await rust_socket.get_map(add_icons=True, add_events=True, add_vending_machines=True)
+    map.save("map.png", "PNG")
+    file = discord.File("map.png")
+    embed = discord.Embed(title="Current Map", url="",
+                          description="",
+                          color=0xce412b)
+    embed.set_image(url="attachment://map.png")
+    await ctx.send(file=file, embed=embed)
+    await rust_socket.disconnect()
 
 # lists commands for rust help
 @bot.command()
@@ -510,7 +555,7 @@ async def rust(ctx):
                     inline=False)
     embed.add_field(name="!raid [arg]", value="Lists raid cost for walls or deployables",
                     inline=False)
-    embed.add_field(name="!time", value="Returns current ingame time",
+    embed.add_field(name="!curtime", value="Returns current in-game time",
                     inline=False)
     embed.add_field(name="!entities", value="Lists paired entities and their ID's",
                     inline=False)
@@ -525,6 +570,10 @@ async def rust(ctx):
     embed.add_field(name="!promote [name]", value="Promotes the player to teamleader",
                     inline=False)
     embed.add_field(name="!bind [STEAM64ID] [PLAYERTOKEN]", value="Binds your Rust+ to your discord user",
+                    inline=False)
+    embed.add_field(name="!team", value="Displays information about all members in team",
+                    inline=False)
+    embed.add_field(name="!server", value="Displays server information",
                     inline=False)
     await ctx.send(embed=embed)
     # await ctx.send("Rust Commands:\n"
