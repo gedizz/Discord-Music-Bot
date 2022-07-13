@@ -141,6 +141,10 @@ async def guild_tasks():
         que_ck.start()
         listen_check = th.Thread(target=await listening_check(guild))
         listen_check.start()
+        if guild.id == 961048740754505728:
+            await loadchat(guild)
+
+
 
 
 ##############
@@ -481,7 +485,7 @@ STEAMID = 76561198040853461 # my steam id -- never changes
 PLAYERTOKEN = -432760157    # my player token. Might change
 
 #options = CommandOptions(prefix="!") # Use whatever prefix you want here
-rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
+rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_ratelimit_exception=False)
 
 async def main():
     await rust_socket.connect()
@@ -551,6 +555,29 @@ async def sendmessage(ctx):
     await rust_socket.connect()
 
     await rust_socket.send_team_message("Testing 123")
+    await rust_socket.disconnect()
+
+@bot.command()
+async def chanid(ctx):
+    await rust_socket.connect()
+
+    channel = discord.utils.get(ctx.guild.channels, name="team-chat")
+    await channel.send("Team chat will display here")
+    await channel.send(ctx.guild.id)
+    await rust_socket.disconnect()
+
+@bot.command()
+async def loadchat(guild):
+    await rust_socket.connect()
+    channel = discord.utils.get(guild.channels, name="team-chat")
+    chatList = await rust_socket.get_team_chat()
+
+    messages = await channel.history(limit=2).flatten()
+    #await ctx.send(messages[1].content)
+    # If the last message in the list of team chat (most recent 20 messages) is not equal to the most recent message in discord channel then send it
+    nextMessage = f"{chatList[-1].name}: {chatList[-1].message}"
+    if (nextMessage != messages[0].content):
+        await channel.send(nextMessage)
     await rust_socket.disconnect()
 
 @bot.command()
