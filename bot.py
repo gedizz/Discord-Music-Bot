@@ -538,22 +538,19 @@ async def server(ctx):
                           color=0xce412b)
     embed.add_field(name="Name", value=server_info.name,
                     inline=False)
-    embed.add_field(name="Pop", value=f"{server_info.players}/{server_info.max_players}",
+    embed.add_field(name="Population", value=f"{server_info.players}/{server_info.max_players}",
                     inline=False)
     embed.add_field(name="Current Queue", value=f"{server_info.queued_players} players",
                     inline=False)
 
-
-    url: str
-    name: str
-    map: str
-    size: int
-    players: int
-    max_players: int
-    queued_players: int
-    seed: int
-
     await ctx.send(embed=embed)
+    await rust_socket.disconnect()
+
+@bot.command()
+async def sendmessage(ctx):
+    await rust_socket.connect()
+
+    await rust_socket.send_team_message("Testing 123")
     await rust_socket.disconnect()
 
 @bot.command()
@@ -569,6 +566,26 @@ async def map(ctx):
     await ctx.send(file=file, embed=embed)
     await rust_socket.disconnect()
 
+# @bot.command()
+# async def events(ctx):
+#     await rust_socket.connect()
+#
+#     eventList = await rust_socket.get_markers()
+#
+#     embed = discord.Embed(title="Events", url="",
+#                           description="",
+#                           color=0xce412b)
+#     for event in eventList:
+#         if event.type == 5:
+#             cargoStatus = "out"
+#         else:
+#             cargoStatus = "not out"
+#         embed.add_field(name="Cargo Status", value=cargoStatus,
+#                         inline=False)
+#
+#     await ctx.send(embed=embed)
+#     await rust_socket.disconnect()
+
 # lists commands for rust help
 @bot.command()
 async def rust(ctx):
@@ -578,28 +595,28 @@ async def rust(ctx):
     embed.set_thumbnail(url="https://www.logolynx.com/images/logolynx/00/00ffc7e57ffb143ce0dd3343aa5a59a7.png")
 
     # Actual commands belong below
-    embed.add_field(name="!rads", value="Lists the rads for each monument",
-                    inline=False)
-    embed.add_field(name="!upgrade", value="Lists upgrade cost for each square, triangle, etc",
-                    inline=False)
-    embed.add_field(name="!raid [arg]", value="Lists raid cost for walls or deployables",
-                    inline=False)
+    # embed.add_field(name="!rads", value="Lists the rads for each monument",
+    #                 inline=False)
+    # embed.add_field(name="!upgrade", value="Lists upgrade cost for each square, triangle, etc",
+    #                 inline=False)
+    # embed.add_field(name="!raid [arg]", value="Lists raid cost for walls or deployables",
+    #                 inline=False)
     embed.add_field(name="!curtime", value="Returns current in-game time",
                     inline=False)
-    embed.add_field(name="!entities", value="Lists paired entities and their ID's",
-                    inline=False)
-    embed.add_field(name="!toggle [id]", value="Toggles the entity on or off. Returns new value",
-                    inline=False)
+    # embed.add_field(name="!entities", value="Lists paired entities and their ID's",
+    #                 inline=False)
+    # embed.add_field(name="!toggle [id]", value="Toggles the entity on or off. Returns new value",
+    #                 inline=False)
     embed.add_field(name="!map", value="Returns map information",
                     inline=False)
     embed.add_field(name="!send [msg]", value="Sends a message to teamchat if you have a bound rust+ account",
                     inline=False)
-    embed.add_field(name="!events", value="Returns status of oil/cargo etc",
-                    inline=False)
-    embed.add_field(name="!promote [name]", value="Promotes the player to teamleader",
-                    inline=False)
-    embed.add_field(name="!bind [STEAM64ID] [PLAYERTOKEN]", value="Binds your Rust+ to your discord user",
-                    inline=False)
+    # embed.add_field(name="!events", value="Returns status of oil/cargo etc",
+    #                 inline=False)
+    # embed.add_field(name="!promote [name]", value="Promotes the player to teamleader",
+    #                 inline=False)
+    # embed.add_field(name="!bind [STEAM64ID] [PLAYERTOKEN]", value="Binds your Rust+ to your discord user",
+    #                 inline=False)
     embed.add_field(name="!team", value="Displays information about all members in team",
                     inline=False)
     embed.add_field(name="!server", value="Displays server information",
