@@ -13,7 +13,13 @@ import asyncio
 from PIL import Image
 import json
 from datetime import datetime
+import logging
 
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 # init player
 bot = commands.Bot(command_prefix='!', help_command=None)
 guild_dict = {}
@@ -32,6 +38,10 @@ YDL_OPTS = {'format': 'bestaudio/best',
             }]
             }
 
+ENTITIES = {
+    "sams": [14395633],
+    "turrets": [14764611, 14995747],
+}
 
 ###########################
 ###  Utility Functions  ###
@@ -141,8 +151,6 @@ async def guild_tasks():
         que_ck.start()
         listen_check = th.Thread(target=await listening_check(guild))
         listen_check.start()
-        if guild.id == 961048740754505728:
-            await loadchat(guild)
 
 
 
@@ -156,8 +164,9 @@ async def on_ready():
     for guild in bot.guilds:
         guild_dict[guild] = Player(guild)
         print(f"Bot is ready on: {guild}")
-    time.sleep(2)
+    await asyncio.sleep(2)
     guild_tasks.start()
+    print(f"Rust+ Bot Online")
     await bot.change_presence(activity=discord.Game(name="music | !help"))
 
         #pool = ThreadPool()
@@ -487,13 +496,63 @@ PLAYERTOKEN = -432760157    # my player token. Might change
 #options = CommandOptions(prefix="!") # Use whatever prefix you want here
 rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_ratelimit_exception=False)
 
-async def main():
+@bot.command()
+async def sams(ctx, *args: str):
     await rust_socket.connect()
-    print(f"Rust+ Monitor Online")
-    await rust_socket.disconnect()
+    sams_list = ENTITIES["sams"]
 
+    if args:
+        if args[0] == "off":
+            for sam in sams_list:
+                await rust_socket.turn_off_smart_switch(sam)
+            await ctx.send("All sam switches turned off")
 
-asyncio.run(main())
+        elif args[0] == "on":
+            for sam in sams_list:
+                await rust_socket.turn_on_smart_switch(sam)
+            await ctx.send("All sam switches turned on")
+
+        else:
+            await ctx.send("Invalid argument. Please use !sams [on/off]")
+    else:
+
+        for sam in sams_list:
+            sam_info = await rust_socket.get_entity_info(sam)
+            if sam_info.value:
+                await rust_socket.turn_off_smart_switch(sam)
+            else:
+                await rust_socket.turn_on_smart_switch(sam)
+        await ctx.send("All sam switches toggled")
+        await rust_socket.disconnect()
+
+@bot.command()
+async def turrets(ctx, *args: str):
+    await rust_socket.connect()
+    turret_list = ENTITIES["turrets"]
+
+    if args:
+        if args[0] == "off":
+            for turret in turret_list:
+                await rust_socket.turn_off_smart_switch(turret)
+            await ctx.send("All turret switches turned off")
+
+        elif args[0] == "on":
+            for turret in turret_list:
+                await rust_socket.turn_on_smart_switch(turret)
+            await ctx.send("All turret switches turned on")
+
+        else:
+            await ctx.send("Invalid argument. Please use !turrets [on/off]")
+    else:
+
+        for turret in turret_list:
+            turret_info = await rust_socket.get_entity_info(turret)
+            if turret_info.value:
+                await rust_socket.turn_off_smart_switch(turret)
+            else:
+                await rust_socket.turn_on_smart_switch(turret)
+        await ctx.send("All turret switches toggled")
+        await rust_socket.disconnect()
 
 
 @bot.command()
@@ -583,8 +642,10 @@ async def loadchat(guild):
 @bot.command()
 async def map(ctx):
     await rust_socket.connect()
-    map = await rust_socket.get_map(add_icons=True, add_events=True, add_vending_machines=True)
-    map.save("map.png", "PNG")
+    game_map = await rust_socket.get_map(add_icons=True, add_events=True, add_vending_machines=True)
+
+    game_map.save("map.png", "PNG")
+
     file = discord.File("map.png")
     embed = discord.Embed(title="Current Map", url="",
                           description="",
@@ -593,27 +654,6 @@ async def map(ctx):
     await ctx.send(file=file, embed=embed)
     await rust_socket.disconnect()
 
-# @bot.command()
-# async def events(ctx):
-#     await rust_socket.connect()
-#
-#     eventList = await rust_socket.get_markers()
-#
-#     embed = discord.Embed(title="Events", url="",
-#                           description="",
-#                           color=0xce412b)
-#     for event in eventList:
-#         if event.type == 5:
-#             cargoStatus = "out"
-#         else:
-#             cargoStatus = "not out"
-#         embed.add_field(name="Cargo Status", value=cargoStatus,
-#                         inline=False)
-#
-#     await ctx.send(embed=embed)
-#     await rust_socket.disconnect()
-
-# lists commands for rust help
 @bot.command()
 async def rust(ctx):
     embed = discord.Embed(title="Dragon Bot Rust Commands", url="",
@@ -632,12 +672,14 @@ async def rust(ctx):
                     inline=False)
     # embed.add_field(name="!entities", value="Lists paired entities and their ID's",
     #                 inline=False)
-    # embed.add_field(name="!toggle [id]", value="Toggles the entity on or off. Returns new value",
-    #                 inline=False)
+    embed.add_field(name="!sams [on/off]", value="Toggles sams or when passed an argument turns all on/off",
+                    inline=False)
+    embed.add_field(name="!turrets [on/off]", value="Toggles turrets or when passed an argument turns all on/off",
+                    inline=False)
     embed.add_field(name="!map", value="Returns map information",
                     inline=False)
-    embed.add_field(name="!send [msg]", value="Sends a message to teamchat if you have a bound rust+ account",
-                    inline=False)
+    #embed.add_field(name="!send [msg]", value="Sends a message to teamchat if you have a bound rust+ account",
+    #                inline=False)
     # embed.add_field(name="!events", value="Returns status of oil/cargo etc",
     #                 inline=False)
     # embed.add_field(name="!promote [name]", value="Promotes the player to teamleader",
@@ -660,6 +702,7 @@ async def rust(ctx):
     #                "\n"
     #                "\n")
 
+
 # clears all files in directory
 @bot.command(aliases=["clr", "cls"])
 async def clear(ctx):
@@ -668,4 +711,5 @@ async def clear(ctx):
             os.remove(file)
 
 # Run bot
+#bot.run(creds.api_key, log_handler=handler)
 bot.run(creds.api_key)
