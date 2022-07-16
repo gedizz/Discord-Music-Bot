@@ -8,6 +8,13 @@ from PIL import Image
 import json
 import datetime
 import time
+import logging
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discordrust.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 #CONSTANTS
 bot = commands.Bot(command_prefix='!', help_command=None)
@@ -15,7 +22,7 @@ STEAMID = 76561198040853461 # my steam id -- never changes
 PLAYERTOKEN = -432760157    # my player token. Might change
 
 ENTITIES = {
-    "sams": [14395633],
+    "sams": [23092110],
     "turrets": [14764611, 14995747],
 }
 
@@ -48,7 +55,7 @@ rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_r
 async def on_ready():
     num_guilds = len(bot.guilds)
     print(f"Rust+ Bot Online")
-    time.sleep(2)
+    #time.sleep(2)
     #guild_tasks.start()
     await bot.change_presence(activity=discord.Game(name="Rust+ | !rust"))
 
@@ -65,19 +72,19 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-    if message.channel.name == "team-chat" and not message.author.bot:
-        username = "" if message.author.name == "[HARR] Walton Towers" else message.author.name
-        print("team chat")
-        print(username)
-        await rust_socket.connect()
-        await rust_socket.send_team_message(username + ": " + message.content)
-        await rust_socket.disconnect()
-    else:
-        print("Not team chat or is a bot")
-    #print(message.created_at)
-    presentDate = datetime.datetime.now()
-    unix_timestamp = datetime.datetime.timestamp(presentDate)
-    #print(unix_timestamp)
+    # if message.channel.name == "team-chat" and not message.author.bot:
+    #     username = "" if message.author.name == "[HARR] Walton Towers" else message.author.name
+    #     print("team chat")
+    #     print(username)
+    #     await rust_socket.connect()
+    #     await rust_socket.send_team_message(username + ": " + message.content)
+    #     await rust_socket.disconnect()
+    # else:
+    #     print("Not team chat or is a bot")
+    # #print(message.created_at)
+    # presentDate = datetime.datetime.now()
+    # unix_timestamp = datetime.datetime.timestamp(presentDate)
+    # #print(unix_timestamp)
 
 
 ################
@@ -99,20 +106,26 @@ class FCM(FCMListener):
 FCM(fcm_details).start()
 
 
-@bot.command()
-async def sams(ctx):
-    await rust_socket.connect()
-    sams_list = ENTITIES["sams"]
+#@bot.command()
+#async def sams(ctx):
 
-    for sam in sams_list:
-        sam_info = await rust_socket.get_entity_info(sam)
-        if sam_info.value:
-            await rust_socket.turn_off_smart_switch(sam)
-            await ctx.send("Sams turned off")
-        else:
-            await rust_socket.turn_on_smart_switch(sam)
-            await ctx.send("Sams turned on")
-    await rust_socket.disconnect()
+
+    #
+    # for sam in sams_list:
+    #     await rust_socket.connect()
+    #     sam_info = await rust_socket.get_entity_info(sam)
+    #     await rust_socket.disconnect()
+    #     if sam_info.value:
+    #         await rust_socket.connect()
+    #         await rust_socket.turn_off_smart_switch(sam)
+    #         await rust_socket.disconnect()
+    #         await ctx.send("Sams turned off")
+    #     else:
+    #         await rust_socket.connect()
+    #         await rust_socket.turn_on_smart_switch(sam)
+    #         await rust_socket.disconnect()
+    #await ctx.send("Sams turned on")
+
 
 
 @bot.command()
@@ -126,7 +139,7 @@ async def team(ctx):
     await rust_socket.connect()
     team_info = await rust_socket.get_team_info()
     for member in team_info.members:
-        embed = embed = discord.Embed(title=member.name, url="",
+        embed = discord.Embed(title=member.name, url="",
                               description="",
                               color=0xce412b)
         embed.add_field(name="x_pos", value=f"{member.x}",
@@ -138,15 +151,6 @@ async def team(ctx):
         embed.add_field(name="Is Alive", value=f"{member.is_alive}",
                         inline=False)
         await ctx.send(embed=embed)
-
-        # steam_id: int
-        # name: str
-        # x: float
-        # y: float
-        # is_online: bool
-        # spawn_time: int
-        # is_alive: bool
-        # death_time: int
 
     await rust_socket.disconnect()
 

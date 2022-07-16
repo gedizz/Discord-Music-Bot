@@ -39,7 +39,7 @@ YDL_OPTS = {'format': 'bestaudio/best',
             }
 
 ENTITIES = {
-    "sams": [14395633],
+    "sams": [23092110],
     "turrets": [14764611, 14995747],
 }
 
@@ -128,6 +128,8 @@ async def listening_check(guild):
 
 
 async def queue_check(guild):
+    await rust_socket.disconnect()
+    print("Disconning")
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=guild)
     player = guild_dict[guild]
     queue = player.queue
@@ -164,7 +166,7 @@ async def on_ready():
     for guild in bot.guilds:
         guild_dict[guild] = Player(guild)
         print(f"Bot is ready on: {guild}")
-    await asyncio.sleep(2)
+    time.sleep(2)
     guild_tasks.start()
     print(f"Rust+ Bot Online")
     await bot.change_presence(activity=discord.Game(name="music | !help"))
@@ -439,43 +441,6 @@ async def help(ctx):
                    "!clear - Clears all downloaded songs\n"
                    "!remove [num in queue] - Removes a song from the current queue")
 
-# RUST PLUS
-# us-2x.stomptown.gg:28015
-
-
-
-# {
-#     "desc": "Welcome to Lifestomper's official StompTown 2x server.\\n\\nJoin his official Discord... discord.gg/DkFqZa35pU\\n\\n- Improved weather cycles\\n- Boosted recycle speeds\\n- No junk barrels\\n- Minicopters & Boats naturally spawn\\n- No sun glare",
-#     "entityId": "42068738",
-#     "entityName": "Switch",
-#     "entityType": "1",
-#     "id": "27921208-8ce4-467a-a240-2ddd912f48b1",
-#     "img": "https://static.vitalrust.com/stomptown/logos/banner-768.jpg",
-#     "ip": "154.16.128.35",
-#     "logo": "https://static.vitalrust.com/stomptown/logos/lettermark_trans-256.png",
-#     "name": "[US] StompTown 2x",
-#     "playerId": "76561198040853461",
-#     "playerToken": "-432760157",
-#     "port": "28017",
-#     "type": "entity",
-#     "url": "https://discord.gg/JBnxrTNxRa"
-# }
-
-# {
-#     "desc": "Welcome to Lifestomper's official StompTown 2x server.\\n\\nJoin his official Discord... discord.gg/DkFqZa35pU\\n\\n- Improved weather cycles\\n- Boosted recycle speeds\\n- No junk barrels\\n- Minicopters & Boats naturally spawn\\n- No sun glare",
-#     "id": "27921208-8ce4-467a-a240-2ddd912f48b1",
-#     "img": "https://static.vitalrust.com/stomptown/logos/banner-768.jpg",
-#     "ip": "154.16.128.35",
-#     "logo": "https://static.vitalrust.com/stomptown/logos/lettermark_trans-256.png",
-#     "name": "[US] StompTown 2x",
-#     "port": "28017",
-#     "targetId": "76561199163869687",
-#     "targetName": "Loud_Sniper69",
-#     "type": "login",
-#     "url": "https://discord.gg/JBnxrTNxRa"
-# }
-
-
 # with open("rustplus.py.config.json", "r") as input_file:
 #     fcm_details = json.load(input_file)
 #
@@ -494,65 +459,78 @@ STEAMID = 76561198040853461 # my steam id -- never changes
 PLAYERTOKEN = -432760157    # my player token. Might change
 
 #options = CommandOptions(prefix="!") # Use whatever prefix you want here
-rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_ratelimit_exception=False)
+rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
 
-@bot.command()
-async def sams(ctx, *args: str):
-    await rust_socket.connect()
-    sams_list = ENTITIES["sams"]
+# @bot.command()
+# async def sams(ctx, *args: str):
+#
+#     sams_list = ENTITIES["sams"]
+#
+#     if args:
+#         if args[0] == "off":
+#             for sam in sams_list:
+#                 await rust_socket.connect()
+#                 await rust_socket.turn_off_smart_switch(sam)
+#                 await rust_socket.disconnect()
+#             await ctx.send("All sam switches turned off")
+#
+#         elif args[0] == "on":
+#             for sam in sams_list:
+#                 await rust_socket.connect()
+#                 await rust_socket.turn_on_smart_switch(sam)
+#                 await rust_socket.disconnect()
+#             await ctx.send("All sam switches turned on")
+#
+#         else:
+#             await ctx.send("Invalid argument. Please use !sams [on/off]")
+#     else:
+#
+#         for sam in sams_list:
+#             await rust_socket.connect()
+#             sam_info = await rust_socket.get_entity_info(sam)
+#             if sam_info.value:
+#                 await rust_socket.turn_off_smart_switch(sam)
+#             else:
+#                 await rust_socket.turn_on_smart_switch(sam)
+#             await rust_socket.disconnect()
+#         await ctx.send("All sam switches toggled")
+#
+#
+#
+# @bot.command()
+# async def turrets(ctx, *args: str):
+#
+#     turret_list = ENTITIES["turrets"]
+#
+#     if args:
+#         if args[0] == "off":
+#             for turret in turret_list:
+#                 await rust_socket.connect()
+#                 await rust_socket.turn_off_smart_switch(turret)
+#                 await rust_socket.disconnect()
+#             await ctx.send("All turret switches turned off")
+#
+#         elif args[0] == "on":
+#             for turret in turret_list:
+#                 await rust_socket.connect()
+#                 await rust_socket.turn_on_smart_switch(turret)
+#                 await rust_socket.disconnect()
+#             await ctx.send("All turret switches turned on")
+#
+#         else:
+#             await ctx.send("Invalid argument. Please use !turrets [on/off]")
+#     else:
+#
+#         for turret in turret_list:
+#             await rust_socket.connect()
+#             turret_info = await rust_socket.get_entity_info(turret)
+#             if turret_info.value:
+#                 await rust_socket.turn_off_smart_switch(turret)
+#             else:
+#                 await rust_socket.turn_on_smart_switch(turret)
+#             await rust_socket.disconnect()
+#         await ctx.send("All turret switches toggled")
 
-    if args:
-        if args[0] == "off":
-            for sam in sams_list:
-                await rust_socket.turn_off_smart_switch(sam)
-            await ctx.send("All sam switches turned off")
-
-        elif args[0] == "on":
-            for sam in sams_list:
-                await rust_socket.turn_on_smart_switch(sam)
-            await ctx.send("All sam switches turned on")
-
-        else:
-            await ctx.send("Invalid argument. Please use !sams [on/off]")
-    else:
-
-        for sam in sams_list:
-            sam_info = await rust_socket.get_entity_info(sam)
-            if sam_info.value:
-                await rust_socket.turn_off_smart_switch(sam)
-            else:
-                await rust_socket.turn_on_smart_switch(sam)
-        await ctx.send("All sam switches toggled")
-        await rust_socket.disconnect()
-
-@bot.command()
-async def turrets(ctx, *args: str):
-    await rust_socket.connect()
-    turret_list = ENTITIES["turrets"]
-
-    if args:
-        if args[0] == "off":
-            for turret in turret_list:
-                await rust_socket.turn_off_smart_switch(turret)
-            await ctx.send("All turret switches turned off")
-
-        elif args[0] == "on":
-            for turret in turret_list:
-                await rust_socket.turn_on_smart_switch(turret)
-            await ctx.send("All turret switches turned on")
-
-        else:
-            await ctx.send("Invalid argument. Please use !turrets [on/off]")
-    else:
-
-        for turret in turret_list:
-            turret_info = await rust_socket.get_entity_info(turret)
-            if turret_info.value:
-                await rust_socket.turn_off_smart_switch(turret)
-            else:
-                await rust_socket.turn_on_smart_switch(turret)
-        await ctx.send("All turret switches toggled")
-        await rust_socket.disconnect()
 
 
 @bot.command()
@@ -566,7 +544,7 @@ async def team(ctx):
     await rust_socket.connect()
     team_info = await rust_socket.get_team_info()
     for member in team_info.members:
-        embed = embed = discord.Embed(title=member.name, url="",
+        embed = discord.Embed(title=member.name, url="",
                               description="",
                               color=0xce412b)
         embed.add_field(name="x_pos", value=f"{member.x}",
@@ -578,15 +556,6 @@ async def team(ctx):
         embed.add_field(name="Is Alive", value=f"{member.is_alive}",
                         inline=False)
         await ctx.send(embed=embed)
-
-        # steam_id: int
-        # name: str
-        # x: float
-        # y: float
-        # is_online: bool
-        # spawn_time: int
-        # is_alive: bool
-        # death_time: int
 
     await rust_socket.disconnect()
 
@@ -609,35 +578,35 @@ async def server(ctx):
     await ctx.send(embed=embed)
     await rust_socket.disconnect()
 
-@bot.command()
-async def sendmessage(ctx):
-    await rust_socket.connect()
-
-    await rust_socket.send_team_message("Testing 123")
-    await rust_socket.disconnect()
-
-@bot.command()
-async def chanid(ctx):
-    await rust_socket.connect()
-
-    channel = discord.utils.get(ctx.guild.channels, name="team-chat")
-    await channel.send("Team chat will display here")
-    await channel.send(ctx.guild.id)
-    await rust_socket.disconnect()
-
-@bot.command()
-async def loadchat(guild):
-    await rust_socket.connect()
-    channel = discord.utils.get(guild.channels, name="team-chat")
-    chatList = await rust_socket.get_team_chat()
-
-    messages = await channel.history(limit=2).flatten()
-    #await ctx.send(messages[1].content)
-    # If the last message in the list of team chat (most recent 20 messages) is not equal to the most recent message in discord channel then send it
-    nextMessage = f"{chatList[-1].name}: {chatList[-1].message}"
-    if (nextMessage != messages[0].content):
-        await channel.send(nextMessage)
-    await rust_socket.disconnect()
+# @bot.command()
+# async def sendmessage(ctx):
+#     await rust_socket.connect()
+#
+#     await rust_socket.send_team_message("Testing 123")
+#     await rust_socket.disconnect()
+# #
+# @bot.command()
+# async def chanid(ctx):
+#     await rust_socket.connect()
+#
+#     channel = discord.utils.get(ctx.guild.channels, name="team-chat")
+#     await channel.send("Team chat will display here")
+#     await channel.send(ctx.guild.id)
+#     await rust_socket.disconnect()
+#
+# @bot.command()
+# async def loadchat(guild):
+#     await rust_socket.connect()
+#     channel = discord.utils.get(guild.channels, name="team-chat")
+#     chatList = await rust_socket.get_team_chat()
+#
+#     messages = await channel.history(limit=2).flatten()
+#     #await ctx.send(messages[1].content)
+#     # If the last message in the list of team chat (most recent 20 messages) is not equal to the most recent message in discord channel then send it
+#     nextMessage = f"{chatList[-1].name}: {chatList[-1].message}"
+#     if (nextMessage != messages[0].content):
+#         await channel.send(nextMessage)
+#     await rust_socket.disconnect()
 
 @bot.command()
 async def map(ctx):
