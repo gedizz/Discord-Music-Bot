@@ -14,6 +14,7 @@ from PIL import Image
 import json
 from datetime import datetime
 import logging
+import requests
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
@@ -24,7 +25,7 @@ logger.addHandler(handler)
 bot = commands.Bot(command_prefix='!', help_command=None)
 guild_dict = {}
 
-#CONSTANTS
+# CONSTANTS
 
 YOUTUBE_URL_START = "https://youtube.com/results?search_query="
 YDL_OPTS = {'format': 'bestaudio/best',
@@ -43,9 +44,22 @@ ENTITIES = {
     "turrets": [14764611, 14995747],
 }
 
+
 ###########################
 ###  Utility Functions  ###
 ###########################
+
+async def grid():
+    info = await rust_socket.get_info()
+    size = info.size
+    map = await rust_socket.get_map(True, True, False)
+    url = f'https://files.rustmaps.com/grids/{size}.png'
+    grid = Image.open(requests.get(url, stream=True).raw)
+    Grid_Fixed = grid.resize((2000, 2000), Image.ANTIALIAS)
+    map.paste(Grid_Fixed, (0, 0), Grid_Fixed)
+    return map
+
+
 async def download_using_url(url: str, append: bool, ctx):
     queue = guild_dict[ctx.guild].queue
     with yt_dlp.YoutubeDL(YDL_OPTS) as ydl:
@@ -128,8 +142,6 @@ async def listening_check(guild):
 
 
 async def queue_check(guild):
-    await rust_socket.disconnect()
-    print("Disconning")
     voice_client: discord.VoiceClient = discord.utils.get(bot.voice_clients, guild=guild)
     player = guild_dict[guild]
     queue = player.queue
@@ -155,8 +167,6 @@ async def guild_tasks():
         listen_check.start()
 
 
-
-
 ##############
 ##  Events  ##
 ##############
@@ -166,13 +176,14 @@ async def on_ready():
     for guild in bot.guilds:
         guild_dict[guild] = Player(guild)
         print(f"Bot is ready on: {guild}")
-    time.sleep(2)
+    # await asyncio.sleep(2)
     guild_tasks.start()
+    await rust_socket.connect()
     print(f"Rust+ Bot Online")
     await bot.change_presence(activity=discord.Game(name="music | !help"))
 
-        #pool = ThreadPool()
-        #pool.map(await check_queue.start(guild))
+    # pool = ThreadPool()
+    # pool.map(await check_queue.start(guild))
 
 
 # handles all messages from users. Will force all commands to be lowercase
@@ -201,7 +212,7 @@ async def play(ctx, *args: str):
 
         keys = list(args)
         song_name = ""
-        #print("URL BEFORE DL: %s\n\n\n", keys[0])
+        # print("URL BEFORE DL: %s\n\n\n", keys[0])
 
         # download if given a url
         if keys[0].startswith("http://www.youtube") or keys[0].startswith("https://www.youtube"):
@@ -414,7 +425,8 @@ async def q(ctx):
 async def remove(ctx, idx: int):
     queue = guild_dict[ctx.guild].queue
     song = await queue.remove_from_queue(idx)
-    await ctx.send(f"{song} removed from the queue") if song else await ctx.send("There is no song in the queue for that number")
+    await ctx.send(f"{song} removed from the queue") if song else await ctx.send(
+        "There is no song in the queue for that number")
 
 
 @bot.command(aliases=["h"])
@@ -441,6 +453,10 @@ async def help(ctx):
                    "!clear - Clears all downloaded songs\n"
                    "!remove [num in queue] - Removes a song from the current queue")
 
+
+# RUST PLUS
+# us-2x.stomptown.gg:28015
+
 # with open("rustplus.py.config.json", "r") as input_file:
 #     fcm_details = json.load(input_file)
 #
@@ -454,99 +470,81 @@ async def help(ctx):
 # FCM(fcm_details).start()
 
 
+STEAMID = 76561198040853461  # my steam id -- never changes
+PLAYERTOKEN = -432760157  # my player token. Might change
 
-STEAMID = 76561198040853461 # my steam id -- never changes
-PLAYERTOKEN = -432760157    # my player token. Might change
+# options = CommandOptions(prefix="!") # Use whatever prefix you want here
+rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_ratelimit_exception=False)
 
-#options = CommandOptions(prefix="!") # Use whatever prefix you want here
-rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN)
 
-# @bot.command()
-# async def sams(ctx, *args: str):
-#
-#     sams_list = ENTITIES["sams"]
-#
-#     if args:
-#         if args[0] == "off":
-#             for sam in sams_list:
-#                 await rust_socket.connect()
-#                 await rust_socket.turn_off_smart_switch(sam)
-#                 await rust_socket.disconnect()
-#             await ctx.send("All sam switches turned off")
-#
-#         elif args[0] == "on":
-#             for sam in sams_list:
-#                 await rust_socket.connect()
-#                 await rust_socket.turn_on_smart_switch(sam)
-#                 await rust_socket.disconnect()
-#             await ctx.send("All sam switches turned on")
-#
-#         else:
-#             await ctx.send("Invalid argument. Please use !sams [on/off]")
-#     else:
-#
-#         for sam in sams_list:
-#             await rust_socket.connect()
-#             sam_info = await rust_socket.get_entity_info(sam)
-#             if sam_info.value:
-#                 await rust_socket.turn_off_smart_switch(sam)
-#             else:
-#                 await rust_socket.turn_on_smart_switch(sam)
-#             await rust_socket.disconnect()
-#         await ctx.send("All sam switches toggled")
-#
-#
-#
-# @bot.command()
-# async def turrets(ctx, *args: str):
-#
-#     turret_list = ENTITIES["turrets"]
-#
-#     if args:
-#         if args[0] == "off":
-#             for turret in turret_list:
-#                 await rust_socket.connect()
-#                 await rust_socket.turn_off_smart_switch(turret)
-#                 await rust_socket.disconnect()
-#             await ctx.send("All turret switches turned off")
-#
-#         elif args[0] == "on":
-#             for turret in turret_list:
-#                 await rust_socket.connect()
-#                 await rust_socket.turn_on_smart_switch(turret)
-#                 await rust_socket.disconnect()
-#             await ctx.send("All turret switches turned on")
-#
-#         else:
-#             await ctx.send("Invalid argument. Please use !turrets [on/off]")
-#     else:
-#
-#         for turret in turret_list:
-#             await rust_socket.connect()
-#             turret_info = await rust_socket.get_entity_info(turret)
-#             if turret_info.value:
-#                 await rust_socket.turn_off_smart_switch(turret)
-#             else:
-#                 await rust_socket.turn_on_smart_switch(turret)
-#             await rust_socket.disconnect()
-#         await ctx.send("All turret switches toggled")
+@bot.command()
+async def sams(ctx, *args: str):
+    sams_list = ENTITIES["sams"]
 
+    if args:
+        if args[0] == "off":
+            for sam in sams_list:
+                await rust_socket.turn_off_smart_switch(sam)
+            await ctx.send("All sam switches turned off")
+
+        elif args[0] == "on":
+            for sam in sams_list:
+                await rust_socket.turn_on_smart_switch(sam)
+            await ctx.send("All sam switches turned on")
+
+        else:
+            await ctx.send("Invalid argument. Please use !sams [on/off]")
+    else:
+
+        for sam in sams_list:
+            sam_info = await rust_socket.get_entity_info(sam)
+            if sam_info.value:
+                await rust_socket.turn_off_smart_switch(sam)
+            else:
+                await rust_socket.turn_on_smart_switch(sam)
+        await ctx.send("All sam switches toggled")
+
+
+@bot.command()
+async def turrets(ctx, *args: str):
+    turret_list = ENTITIES["turrets"]
+
+    if args:
+        if args[0] == "off":
+            for turret in turret_list:
+                await rust_socket.turn_off_smart_switch(turret)
+            await ctx.send("All turret switches turned off")
+
+        elif args[0] == "on":
+            for turret in turret_list:
+                await rust_socket.turn_on_smart_switch(turret)
+            await ctx.send("All turret switches turned on")
+
+        else:
+            await ctx.send("Invalid argument. Please use !turrets [on/off]")
+    else:
+
+        for turret in turret_list:
+            turret_info = await rust_socket.get_entity_info(turret)
+            if turret_info.value:
+                await rust_socket.turn_off_smart_switch(turret)
+            else:
+                await rust_socket.turn_on_smart_switch(turret)
+        await ctx.send("All turret switches toggled")
 
 
 @bot.command()
 async def curtime(ctx):
-    await rust_socket.connect()
     await ctx.send(f"Current in-game time: {(await rust_socket.get_time()).time}")
-    await rust_socket.disconnect()
+
 
 @bot.command()
 async def team(ctx):
-    await rust_socket.connect()
     team_info = await rust_socket.get_team_info()
     for member in team_info.members:
-        embed = discord.Embed(title=member.name, url="",
-                              description="",
-                              color=0xce412b)
+        embed = embed = discord.Embed(title=member.name, url="",
+                                      description="",
+                                      color=0xce412b)
         embed.add_field(name="x_pos", value=f"{member.x}",
                         inline=False)
         embed.add_field(name="y_pos", value=f"{member.y}",
@@ -557,12 +555,18 @@ async def team(ctx):
                         inline=False)
         await ctx.send(embed=embed)
 
-    await rust_socket.disconnect()
+        # steam_id: int
+        # name: str
+        # x: float
+        # y: float
+        # is_online: bool
+        # spawn_time: int
+        # is_alive: bool
+        # death_time: int
+
 
 @bot.command()
 async def server(ctx):
-    await rust_socket.connect()
-
     server_info = await rust_socket.get_info()
 
     embed = discord.Embed(title="Server Information", url="",
@@ -576,44 +580,33 @@ async def server(ctx):
                     inline=False)
 
     await ctx.send(embed=embed)
-    await rust_socket.disconnect()
 
-# @bot.command()
-# async def sendmessage(ctx):
-#     await rust_socket.connect()
-#
-#     await rust_socket.send_team_message("Testing 123")
-#     await rust_socket.disconnect()
-# #
-# @bot.command()
-# async def chanid(ctx):
-#     await rust_socket.connect()
-#
-#     channel = discord.utils.get(ctx.guild.channels, name="team-chat")
-#     await channel.send("Team chat will display here")
-#     await channel.send(ctx.guild.id)
-#     await rust_socket.disconnect()
-#
-# @bot.command()
-# async def loadchat(guild):
-#     await rust_socket.connect()
-#     channel = discord.utils.get(guild.channels, name="team-chat")
-#     chatList = await rust_socket.get_team_chat()
-#
-#     messages = await channel.history(limit=2).flatten()
-#     #await ctx.send(messages[1].content)
-#     # If the last message in the list of team chat (most recent 20 messages) is not equal to the most recent message in discord channel then send it
-#     nextMessage = f"{chatList[-1].name}: {chatList[-1].message}"
-#     if (nextMessage != messages[0].content):
-#         await channel.send(nextMessage)
-#     await rust_socket.disconnect()
+
+@bot.command()
+async def chanid(ctx):
+    channel = discord.utils.get(ctx.guild.channels, name="team-chat")
+    await channel.send("Team chat will display here")
+    await channel.send(ctx.guild.id)
+
+
+@bot.command()
+async def loadchat(guild):
+    channel = discord.utils.get(guild.channels, name="team-chat")
+    chatList = await rust_socket.get_team_chat()
+
+    messages = await channel.history(limit=2).flatten()
+    # await ctx.send(messages[1].content)
+    # If the last message in the list of team chat (most recent 20 messages) is not equal to the most recent message in discord channel then send it
+    nextMessage = f"{chatList[-1].name}: {chatList[-1].message}"
+    if (nextMessage != messages[0].content):
+        await channel.send(nextMessage)
+
 
 @bot.command()
 async def map(ctx):
-    await rust_socket.connect()
     game_map = await rust_socket.get_map(add_icons=True, add_events=True, add_vending_machines=True)
-
-    game_map.save("map.png", "PNG")
+    game_map_with_grid = await grid()
+    game_map_with_grid.save("map.png", "PNG")
 
     file = discord.File("map.png")
     embed = discord.Embed(title="Current Map", url="",
@@ -621,7 +614,7 @@ async def map(ctx):
                           color=0xce412b)
     embed.set_image(url="attachment://map.png")
     await ctx.send(file=file, embed=embed)
-    await rust_socket.disconnect()
+
 
 @bot.command()
 async def rust(ctx):
@@ -647,7 +640,7 @@ async def rust(ctx):
                     inline=False)
     embed.add_field(name="!map", value="Returns map information",
                     inline=False)
-    #embed.add_field(name="!send [msg]", value="Sends a message to teamchat if you have a bound rust+ account",
+    # embed.add_field(name="!send [msg]", value="Sends a message to teamchat if you have a bound rust+ account",
     #                inline=False)
     # embed.add_field(name="!events", value="Returns status of oil/cargo etc",
     #                 inline=False)
@@ -679,6 +672,7 @@ async def clear(ctx):
         if file.endswith(".mp3"):
             os.remove(file)
 
+
 # Run bot
-#bot.run(creds.api_key, log_handler=handler)
+# bot.run(creds.api_key, log_handler=handler)
 bot.run(creds.api_key)
