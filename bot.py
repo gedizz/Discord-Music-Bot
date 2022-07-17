@@ -730,10 +730,18 @@ async def events(ctx):
     large_crate = "No crate"
     small_crate = "No crate"
     regular_crate = "No crate dropped"
+    explosion_status = "Not active"
 
     for event in event_list:
 
-        if event.type == 5: # The event is cargo
+        if event.type == 2: # Explosion is active
+            location = await determine_crate_location(event)
+            if location:
+                explosion_status = location
+            else:
+                explosion_status = await determine_coordinate(event.x, event.y)
+
+        elif event.type == 5: # The event is cargo
             num_crates = 0
             # determine if and how many crates are on
             for cargo_crate in event_list:
@@ -764,7 +772,7 @@ async def events(ctx):
     embed = discord.Embed(title=":map: Server Events", url="",
                           description="",
                           color=0xce412b)
-    embed.add_field(name=":boom: Explosions", value="Not active",
+    embed.add_field(name=":boom: Explosion", value=explosion_status,
                     inline=False)
     embed.add_field(name=":helicopter: Helicopter", value=heli_active,
                     inline=False)
@@ -811,8 +819,8 @@ async def rust(ctx):
                     inline=False)
     # embed.add_field(name="!send [msg]", value="Sends a message to teamchat if you have a bound rust+ account",
     #                inline=False)
-    # embed.add_field(name="!events", value="Returns status of oil/cargo etc",
-    #                 inline=False)
+    embed.add_field(name="!events", value="Returns status of oil/cargo etc",
+                    inline=False)
     # embed.add_field(name="!promote [name]", value="Promotes the player to teamleader",
     #                 inline=False)
     # embed.add_field(name="!bind [STEAM64ID] [PLAYERTOKEN]", value="Binds your Rust+ to your discord user",
