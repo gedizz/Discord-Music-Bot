@@ -1,19 +1,17 @@
 import os
 import re
 import threading as th
-import time
 import urllib.request
 import discord
 import yt_dlp
 from discord.ext import commands, tasks
+from discord.utils import get
 import creds
 from Player import Player
 from rustplus import RustSocket, FCMListener, CommandOptions, Command
-import asyncio
 from PIL import Image
-import json
-from datetime import datetime
 import logging
+import math
 import requests
 
 logger = logging.getLogger('discord')
@@ -428,6 +426,12 @@ async def remove(ctx, idx: int):
     await ctx.send(f"{song} removed from the queue") if song else await ctx.send(
         "There is no song in the queue for that number")
 
+# clears all files in directory
+@bot.command(aliases=["clr", "cls"])
+async def clear(ctx):
+    for file in os.listdir("./"):
+        if file.endswith(".mp3"):
+            os.remove(file)
 
 @bot.command(aliases=["h"])
 async def help(ctx):
@@ -469,6 +473,9 @@ async def help(ctx):
 #
 # FCM(fcm_details).start()
 
+STANDARDX = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l",
+            "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z","aa"]
+STANDARDY = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]
 
 STEAMID = 76561198040853461  # my steam id -- never changes
 PLAYERTOKEN = -432760157  # my player token. Might change
@@ -476,6 +483,22 @@ PLAYERTOKEN = -432760157  # my player token. Might change
 # options = CommandOptions(prefix="!") # Use whatever prefix you want here
 rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_ratelimit_exception=False)
 
+####################
+### RUST UTILITY ###
+####################
+async def determine_coordinate(x, y):
+
+    x_math = x / 146
+    y_math = y / 146
+    x_index = math.floor(x_math)
+    y_index = math.ceil(y_math)
+
+    grid = f"{STANDARDX[x_index]}{STANDARDY[-y_index]}".upper()
+    print(f"Passed: ({x}, {y})\n"
+          f"After Math: ({x_math}, {y_math})\n"
+          f"After Round: ({x_index}, {y_index})\n"
+          f"Grid: {grid}")
+    return grid
 
 @bot.command()
 async def sams(ctx, *args: str):
@@ -542,17 +565,16 @@ async def curtime(ctx):
 async def team(ctx):
     team_info = await rust_socket.get_team_info()
     for member in team_info.members:
+        member_grid = await determine_coordinate(member.x, member.y)
         embed = embed = discord.Embed(title=member.name, url="",
                                       description="",
                                       color=0xce412b)
-        embed.add_field(name="x_pos", value=f"{member.x}",
-                        inline=False)
-        embed.add_field(name="y_pos", value=f"{member.y}",
-                        inline=False)
+        embed.add_field(name="Grid:", value=f"{member_grid}",
+                        inline=True)
         embed.add_field(name="Is Online", value=f"{member.is_online}",
-                        inline=False)
+                        inline=True)
         embed.add_field(name="Is Alive", value=f"{member.is_alive}",
-                        inline=False)
+                        inline=True)
         await ctx.send(embed=embed)
 
         # steam_id: int
@@ -567,6 +589,8 @@ async def team(ctx):
 
 @bot.command()
 async def server(ctx):
+    map = await rust_socket.get_raw_map_data()
+
     server_info = await rust_socket.get_info()
 
     embed = discord.Embed(title="Server Information", url="",
@@ -578,6 +602,8 @@ async def server(ctx):
                     inline=False)
     embed.add_field(name="Current Queue", value=f"{server_info.queued_players} players",
                     inline=False)
+    embed.add_field(name="Map Size", value=f"{map.width}x{map.height}",
+                    inline=False)
 
     await ctx.send(embed=embed)
 
@@ -587,6 +613,15 @@ async def chanid(ctx):
     channel = discord.utils.get(ctx.guild.channels, name="team-chat")
     await channel.send("Team chat will display here")
     await channel.send(ctx.guild.id)
+
+@bot.command()
+async def dragon(ctx):
+    team_info = await rust_socket.get_team_info()
+    for member in team_info.members:
+        if member.name == "X7 Dragon":
+            member_grid = await determine_coordinate(member.x, member.y)
+
+            await ctx.send(member_grid)
 
 
 @bot.command()
@@ -614,6 +649,120 @@ async def map(ctx):
                           color=0xce412b)
     embed.set_image(url="attachment://map.png")
     await ctx.send(file=file, embed=embed)
+
+    # Player = 1
+    # Explosion = 2
+    # VendingMachine = 3
+    # CH47 = 4
+    # CargoShip = 5
+    # Crate = 6
+    # GenericRadius = 7
+    # PatrolHelicopter = 8
+# train_tunnel_display_name
+# train_tunnel_display_name
+# train_tunnel_display_name
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# arctic_base_a
+# large_fishing_village_display_name
+# fishing_village_display_name
+# fishing_village_display_name
+# harbor_display_name
+# train_tunnel_display_name
+# harbor_2_display_name
+# train_tunnel_display_name
+# airfield_display_name
+# train_tunnel_display_name
+# excavator
+# train_tunnel_display_name
+# military_tunnels_display_name
+# train_tunnel_display_name
+# power_plant_display_name
+# train_tunnel_display_name
+# train_yard_display_name
+# train_tunnel_display_name
+# water_treatment_plant_display_name
+# train_tunnel_display_name
+# lighthouse_display_name
+# lighthouse_display_name
+# outpost
+# train_tunnel_display_name
+# sewer_display_name
+# AbandonedMilitaryBase
+# large_oil_rig
+# oil_rig_small
+# gas_station
+# supermarket
+# supermarket
+# supermarket
+# mining_outpost_display_name
+# mining_outpost_display_name
+# satellite_dish_display_name
+# dome_monument_name
+# stables_a
+# stables_b
+# underwater_lab
+# DungeonBase
+# underwater_lab
+# DungeonBase
+# underwater_lab
+# DungeonBase
+# launchsite
+# train_tunnel_display_name
+@bot.command()
+async def events(ctx):
+    event_list = await rust_socket.get_current_events()
+    cargo_active = "Not Active"
+    heli_active = "Not Active"
+
+    for event in event_list:
+
+        if event.type == 5: # The event is cargo
+            num_crates = 0
+            # determine if and how many crates are on
+            for cargo_crate in event_list:
+                if cargo_crate.type == 6:
+                    distance = math.sqrt(abs(cargo_crate.x - event.x) ** 2 + abs(cargo_crate.y - event.y) ** 2)
+                    if distance < 150:
+                        num_crates += 1
+            # Update the message to send now that the number of crates is determined
+            cargo_active = f"Active: {num_crates} crate(s)"
+
+        if event.type == 8: # The event is heli
+            heli_active = "Active"
+
+
+        print(event.name)
+        print(event.id)
+        print(event.type)
+
+    # End of grand loop
+    embed = discord.Embed(title=":map: Server Events", url="",
+                          description="",
+                          color=0xce412b)
+    embed.add_field(name=":boom: Explosions", value="Not active",
+                    inline=False)
+    embed.add_field(name=":helicopter: Helicopter", value=heli_active,
+                    inline=False)
+    embed.add_field(name=":cruise_ship: Cargo", value=cargo_active,
+                    inline=False)
+    embed.add_field(name=":airplane: Chinook", value="Not active",
+                    inline=False)
+    embed.add_field(name=":package: Crate", value="Not active",
+                    inline=False)
+    embed.add_field(name=":oil: Small Oil", value="No crate",
+                    inline=False)
+    embed.add_field(name=":oil: Large Oil", value="No crate",
+                    inline=False)
+
+
+
+    await ctx.send(embed=embed)
+
 
 
 @bot.command()
@@ -665,12 +814,6 @@ async def rust(ctx):
     #                "\n")
 
 
-# clears all files in directory
-@bot.command(aliases=["clr", "cls"])
-async def clear(ctx):
-    for file in os.listdir("./"):
-        if file.endswith(".mp3"):
-            os.remove(file)
 
 
 # Run bot
