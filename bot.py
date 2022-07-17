@@ -486,6 +486,69 @@ rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_r
 ####################
 ### RUST UTILITY ###
 ####################
+# train_tunnel_display_name
+# train_tunnel_display_name
+# train_tunnel_display_name
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# DungeonBase
+# arctic_base_a
+# large_fishing_village_display_name
+# fishing_village_display_name
+# fishing_village_display_name
+# harbor_display_name
+# train_tunnel_display_name
+# harbor_2_display_name
+# train_tunnel_display_name
+# airfield_display_name
+# train_tunnel_display_name
+# excavator
+# train_tunnel_display_name
+# military_tunnels_display_name
+# train_tunnel_display_name
+# power_plant_display_name
+# train_tunnel_display_name
+# train_yard_display_name
+# train_tunnel_display_name
+# water_treatment_plant_display_name
+# train_tunnel_display_name
+# lighthouse_display_name
+# lighthouse_display_name
+# outpost
+# train_tunnel_display_name
+# sewer_display_name
+# AbandonedMilitaryBase
+# large_oil_rig
+# oil_rig_small
+# gas_station
+# supermarket
+# supermarket
+# supermarket
+# mining_outpost_display_name
+# mining_outpost_display_name
+# satellite_dish_display_name
+# dome_monument_name
+# stables_a
+# stables_b
+# underwater_lab
+# DungeonBase
+# underwater_lab
+# DungeonBase
+# underwater_lab
+# DungeonBase
+# launchsite
+# train_tunnel_display_name
+async def determine_crate_location(crate):
+    map_data = await rust_socket.get_raw_map_data()
+    for mon in map_data.monuments:
+        distance = math.sqrt(abs(crate.x - mon.x) ** 2 + abs(crate.y - mon.y) ** 2)
+        if distance < 150:
+            return mon.token
+
+
 async def determine_coordinate(x, y):
 
     x_math = x / 146
@@ -658,66 +721,15 @@ async def map(ctx):
     # Crate = 6
     # GenericRadius = 7
     # PatrolHelicopter = 8
-# train_tunnel_display_name
-# train_tunnel_display_name
-# train_tunnel_display_name
-# DungeonBase
-# DungeonBase
-# DungeonBase
-# DungeonBase
-# DungeonBase
-# DungeonBase
-# arctic_base_a
-# large_fishing_village_display_name
-# fishing_village_display_name
-# fishing_village_display_name
-# harbor_display_name
-# train_tunnel_display_name
-# harbor_2_display_name
-# train_tunnel_display_name
-# airfield_display_name
-# train_tunnel_display_name
-# excavator
-# train_tunnel_display_name
-# military_tunnels_display_name
-# train_tunnel_display_name
-# power_plant_display_name
-# train_tunnel_display_name
-# train_yard_display_name
-# train_tunnel_display_name
-# water_treatment_plant_display_name
-# train_tunnel_display_name
-# lighthouse_display_name
-# lighthouse_display_name
-# outpost
-# train_tunnel_display_name
-# sewer_display_name
-# AbandonedMilitaryBase
-# large_oil_rig
-# oil_rig_small
-# gas_station
-# supermarket
-# supermarket
-# supermarket
-# mining_outpost_display_name
-# mining_outpost_display_name
-# satellite_dish_display_name
-# dome_monument_name
-# stables_a
-# stables_b
-# underwater_lab
-# DungeonBase
-# underwater_lab
-# DungeonBase
-# underwater_lab
-# DungeonBase
-# launchsite
-# train_tunnel_display_name
+
 @bot.command()
 async def events(ctx):
     event_list = await rust_socket.get_current_events()
     cargo_active = "Not Active"
     heli_active = "Not Active"
+    large_crate = "No crate"
+    small_crate = "No crate"
+    regular_crate = "No crate dropped"
 
     for event in event_list:
 
@@ -732,9 +744,17 @@ async def events(ctx):
             # Update the message to send now that the number of crates is determined
             cargo_active = f"Active: {num_crates} crate(s)"
 
-        if event.type == 8: # The event is heli
+        elif event.type == 8: # The event is heli
             heli_active = "Active"
 
+        elif event.type == 6: # It's a crate not aforementioned
+            location = await determine_crate_location(event)
+            if location == "large_oil_rig":
+                large_crate = "Crate available"
+            elif location == "oil_rig_small":
+                small_crate = "Crate available"
+            elif location != "oil_rig_small" and location != "large_oil_rig":
+                regular_crate = location
 
         print(event.name)
         print(event.id)
@@ -752,11 +772,11 @@ async def events(ctx):
                     inline=False)
     embed.add_field(name=":airplane: Chinook", value="Not active",
                     inline=False)
-    embed.add_field(name=":package: Crate", value="Not active",
+    embed.add_field(name=":package: Crate", value=regular_crate,
                     inline=False)
-    embed.add_field(name=":oil: Small Oil", value="No crate",
+    embed.add_field(name=":oil: Small Oil", value=small_crate,
                     inline=False)
-    embed.add_field(name=":oil: Large Oil", value="No crate",
+    embed.add_field(name=":oil: Large Oil", value=large_crate,
                     inline=False)
 
 
