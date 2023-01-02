@@ -7,12 +7,12 @@ import asyncio
 
 #CONSTANTS
 
-STEAMID = 76561198040853461 # my steam id -- never changes
-PLAYERTOKEN = -432760157    # my player token. Might change
+STEAMID = 76561198040853461  # Current: Tag      Mine -- 76561198040853461
+PLAYERTOKEN = 1167203602    # Current: Tag     Mine -- -432760157
 
 ENTITIES = {
-    "sams": [23092110],
-    "turrets": [14764611, 14995747],
+    "sams": [9135471],
+    "turrets": [12708443, 12708606],
 }
 
 # options = CommandOptions(prefix="!") # Use whatever prefix you want here
@@ -24,7 +24,7 @@ ENTITIES = {
 #     await rust_socket.hang()
 
 options = CommandOptions(prefix="!")
-rust_socket = RustSocket("154.16.128.35", "28017", STEAMID, PLAYERTOKEN, raise_ratelimit_exception=False, command_options=options)
+rust_socket = RustSocket("64.40.8.149", "28085", STEAMID, PLAYERTOKEN, raise_ratelimit_exception=False, command_options=options)
 
 loop = asyncio.get_event_loop()
 
@@ -36,7 +36,21 @@ loop.create_task(connect())
 
 @rust_socket.command()
 async def hi(command: Command):
-    await rust_socket.send_team_message(f"Hi, {command.sender_name}")
+    if command.sender_name == "Orphan bonfire":
+        await rust_socket.send_team_message(f"Hi, cheater!")
+    else:
+        await rust_socket.send_team_message(f"Hi, {command.sender_name}")
+
+@rust_socket.command()
+async def status(command: Command):
+    await rust_socket.send_team_message(f"Switch Status:")
+
+    for i in range(0, len(ENTITIES["turrets"])):
+        turret = await rust_socket.get_entity_info(ENTITIES["turrets"][i])
+        await rust_socket.send_team_message(f"--Turret Switch {i}: {turret.value}")
+    for i in range(0, len(ENTITIES["sams"])):
+        sam = await rust_socket.get_entity_info(ENTITIES["sams"][i])
+        await rust_socket.send_team_message(f"--SAM Switch {i}: {sam.value}")
 
 @rust_socket.command()
 async def sams(command: Command):
@@ -58,18 +72,19 @@ async def sams(command: Command):
         else:
             await rust_socket.send_team_message("Invalid argument. Please use !sams [on/off]")
     else:
-
+        msg = "on"
         for sam in sams_list:
             sam_info = await rust_socket.get_entity_info(sam)
             if sam_info.value:
+                msg = "off"
                 await rust_socket.turn_off_smart_switch(sam)
             else:
                 await rust_socket.turn_on_smart_switch(sam)
-        await rust_socket.send_team_message("All sam switches toggled")
+        await rust_socket.send_team_message(f"All sam turned {msg}")
 
 @rust_socket.command()
 async def turrets(command: Command):
-    turrets_list = ENTITIES["sams"]
+    turrets_list = ENTITIES["turrets"]
 
     if command.args:
         if len(command.args) > 1:
@@ -88,13 +103,15 @@ async def turrets(command: Command):
             await rust_socket.send_team_message("Invalid argument. Please use !turrets [on/off]")
     else:
 
+        msg = "on"
         for turret in turrets_list:
             turret_info = await rust_socket.get_entity_info(turret)
             if turret_info.value:
+                msg = "off"
                 await rust_socket.turn_off_smart_switch(turret)
             else:
                 await rust_socket.turn_on_smart_switch(turret)
-        await rust_socket.send_team_message("All turret switches toggled")
+        await rust_socket.send_team_message(f"All turret switches turned {msg}")
 
 
 @rust_socket.command()
@@ -115,6 +132,7 @@ async def help(command: Command):
     await rust_socket.send_team_message(".!curtime - Displays current pop info")
     await rust_socket.send_team_message(".!sams [on/off] - Toggles sams or turns them all on/off")
     await rust_socket.send_team_message(".!turrets [on/off] - Toggles turrets or turns them all on/off")
+    await rust_socket.send_team_message(".!status - Displays current switch statuses ")
 
 
 
